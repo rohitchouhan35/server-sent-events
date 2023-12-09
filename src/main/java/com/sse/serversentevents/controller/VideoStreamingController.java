@@ -36,7 +36,7 @@ public class VideoStreamingController {
     private VideoStreamingService videoStreamingService;
 
     @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<byte[]>> streamVideos() {
+    public Flux<ServerSentEvent<String>> streamVideos() {
         return videoStreamingService.streamSSEVideo();
     }
 

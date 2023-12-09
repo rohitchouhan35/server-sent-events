@@ -1,35 +1,49 @@
-<video id="video" controls></video>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Streaming</title>
+</head>
+<body>
+<video id="video-player" controls></video>
+
 <script>
-const videoElement = document.getElementById('video');
+    document.addEventListener('DOMContentLoaded', function () {
+        const videoPlayer = document.getElementById('video-player');
+        const eventSource = new EventSource('http://localhost:8080/video-stream');
 
-// Replace placeholder URL with your actual video source
-videoElement.src = 'http://localhost:8080/video-stream';
+        eventSource.onmessage = function (event) {
+            console.log('Received message from server:', event);
 
-const eventSource = new EventSource(videoElement.src);
+            // Decode Base64-encoded chunk
+            const decodedChunk = atob(event.data);
+            console.log('Decoded chunk:', decodedChunk);
 
-eventSource.onmessage = function(event) {
-const data = event.data.split(',');
-const type = data[0];
-const content = data[1];
+            // Convert the decoded string to Uint8Array
+            const byteArray = new Uint8Array(decodedChunk.length);
+            for (let i = 0; i < decodedChunk.length; i++) {
+                byteArray[i] = decodedChunk.charCodeAt(i);
+            }
 
-if (type === 'video') {
-const videoData = Base64.decode(content);
+            // Create a Blob from Uint8Array
+            const blob = new Blob([byteArray], { type: 'video/mp4' });
+            console.log('Created Blob:', blob);
 
-// Create a new Blob object for each received video chunk
-const blob = new Blob([videoData], { type: 'video/mp4' });
+            // Append the Blob to the video player
+            videoPlayer.src = URL.createObjectURL(blob);
+            console.log('Set video player source:', videoPlayer.src);
+        };
 
-// Append the Blob to the video source using the MediaSource API
-if (!videoSource) {
-videoSource = new MediaSource();
-videoElement.src = window.URL.createObjectURL(videoSource);
-}
+        eventSource.onerror = function (error) {
+            console.error('EventSource failed:', error);
+            eventSource.close();
+        };
 
-const sourceBuffer = videoSource.addSourceBuffer('video/mp4; codecs="avc1.42E01E,mp4a.40.2"');
-sourceBuffer.appendBuffer(blob);
-}
-};
-
-eventSource.onerror = function(error) {
-console.error("Error occurred while streaming video:", error);
-};
+        window.onbeforeunload = function () {
+            eventSource.close();
+        };
+    });
 </script>
+</body>
+</html>

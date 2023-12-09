@@ -18,10 +18,12 @@ import java.util.stream.Stream;
 @RequestMapping("/server-events")
 public class ServerSentEvents {
 
+    public static final String pomXMLFilePath = "C:/Users/asus nitro 5/Desktop/Academics/spring-java/server-sent-events/pom.xml";
+
     @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> getEvents() throws IOException {
 
-        Stream<String> lines = Files.lines(Path.of("C:/Users/asus nitro 5/Desktop/Academics/spring-java/server-sent-events/pom.xml"));
+        Stream<String> lines = Files.lines(Path.of(pomXMLFilePath));
         AtomicInteger counter = new AtomicInteger(1);
         return Flux.fromStream(lines)
                 .filter(line -> !line.isBlank())
@@ -37,8 +39,7 @@ public class ServerSentEvents {
     @GetMapping(path = "/alternative", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> getEventsAlternativeOption() throws IOException {
 
-        //TODO: Replace this with your file path
-        Stream<String> lines = Files.lines(Path.of("C:/Users/asus nitro 5/Desktop/Academics/spring-java/server-sent-events/pom.xml"));
+        Stream<String> lines = Files.lines(Path.of(pomXMLFilePath));
         return Flux.fromStream(lines)
                 .filter(line -> !line.isBlank())
                 .delayElements(Duration.ofMillis(300));
