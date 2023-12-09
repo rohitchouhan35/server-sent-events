@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Video Streaming</title>
+    <style>
+        video {
+            width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+<video id="videoPlayer" controls autoplay>
+    <!-- Your browser does not support the video tag. -->
+</video>
+
+<script>
+    const videoPlayer = document.getElementById("videoPlayer");
+    const eventSource = new EventSource("http://localhost:8080/video-stream/video");
+
+    let receivedData = [];
+
+    eventSource.onopen = function (event) {
+        console.log('Connection to server is open.');
+    };
+
+    eventSource.onmessage = function (event) {
+        try {
+            const data = event.data;
+
+            // Convert the received data to Uint8Array
+            const uint8Data = new Uint8Array(data);
+
+            // Append the new data to the receivedData array
+            receivedData.push(uint8Data);
+
+            // Log the size of the receivedData array
+            console.log('Received data size:', receivedData.length);
+
+            // Check if the receivedData forms a complete video frame
+            if (isCompleteVideoFrame(receivedData)) {
+                console.log('Complete video frame received');
+
+                // Concatenate the Uint8Arrays into a single Uint8Array
+                const concatenatedData = Uint8Array.from(receivedData.reduce((acc, chunk) => [...acc, ...chunk], []));
+
+                // Create a Blob from the concatenated data
+                const videoFrames = new Blob([concatenatedData], {type: 'video/mp4'});
+
+                // Create an object URL and set it as the source for the video element
+                const videoUrl = URL.createObjectURL(videoFrames);
+                videoPlayer.src = videoUrl;
+
+                // Reset the receivedData array for the next frame
+                receivedData = [];
+            }
+        } catch (error) {
+            console.error('Error processing message:', error);
+        }
+    };
+
+    eventSource.onerror = function (error) {
+        console.error('Error with EventSource:', error);
+
+        // Additional error information
+        console.error('EventSource.readyState:', eventSource.readyState);
+        console.error('EventSource.url:', eventSource.url);
+
+        // Close the EventSource to stop reconnect attempts
+        eventSource.close();
+    };
+
+    eventSource.onclose = function (event) {
+        console.log('Connection to server is closed.');
+    };
+
+    // Check if the received data forms a complete video frame
+    function isCompleteVideoFrame(dataChunks) {
+        // Log the total size of the received data
+        const totalSize = dataChunks.reduce((acc, chunk) => acc + chunk.length, 0);
+        console.log('Total size of received data:', totalSize);
+
+        // Check if the total size of the received data is at least 4 bytes
+        // (you should adjust this based on the structure of your binary data)
+        const headerSize = 4;
+        if (totalSize >= headerSize) {
+            const frameSize = new DataView(dataChunks[0].buffer.slice(0, headerSize)).getUint32(0);
+            console.log('Frame size:', frameSize);
+
+            // Assuming the first 4 bytes represent the size of the frame
+            return totalSize >= frameSize;
+        }
+
+        return false;
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<video id="video" controls></video>
+<script>
+const videoElement = document.getElementById('video');
+
+// Replace placeholder URL with your actual video source
+videoElement.src = 'http://localhost:8080/video-stream';
+
+const eventSource = new EventSource(videoElement.src);
+
+eventSource.onmessage = function(event) {
+const data = event.data.split(',');
+const type = data[0];
+const content = data[1];
+
+if (type === 'video') {
+const videoData = Base64.decode(content);
+
+// Create a new Blob object for each received video chunk
+const blob = new Blob([videoData], { type: 'video/mp4' });
+
+// Append the Blob to the video source using the MediaSource API
+if (!videoSource) {
+videoSource = new MediaSource();
+videoElement.src = window.URL.createObjectURL(videoSource);
+}
+
+const sourceBuffer = videoSource.addSourceBuffer('video/mp4; codecs="avc1.42E01E,mp4a.40.2"');
+sourceBuffer.appendBuffer(blob);
+}
+};
+
+eventSource.onerror = function(error) {
+console.error("Error occurred while streaming video:", error);
+};
+</script>
